@@ -1,35 +1,33 @@
 #include "KillTracker.h"
 
-void KillTracker::Update(const std::shared_ptr<const PluginSDK::PluginGameSnapshot>& snapshot) {
-    if (!snapshot) return;
-
+void KillTracker::Update(const PluginSDK::Snapshot& snapshot) {
     // Detect area change
-    if (snapshot->AreaChangeCounter != m_LastAreaChangeCounter) {
+    if (snapshot.AreaChangeCounter != m_LastAreaChangeCounter) {
         if (m_LastAreaChangeCounter != 0) {
             // Save current map counters before they get reset
             m_PreviousMapCounters = m_MapCounters;
             m_AreaChanged = true;
         }
-        m_LastAreaChangeCounter = snapshot->AreaChangeCounter;
+        m_LastAreaChangeCounter = snapshot.AreaChangeCounter;
         m_PendingReset = true;
         m_PrevEntities.clear();
         m_PlayerWasAlive = true;
 
         // Update area info
-        m_CurrentAreaName = snapshot->CurrentAreaName;
-        m_CurrentAreaHash = snapshot->CurrentAreaHash;
-        m_CurrentAreaLevel = snapshot->CurrentAreaLevel;
+        m_CurrentAreaName = snapshot.CurrentAreaName;
+        m_CurrentAreaHash = snapshot.CurrentAreaHash;
+        m_CurrentAreaLevel = snapshot.CurrentAreaLevel;
     }
 
     // Skip tracking in town/hideout
-    if (snapshot->IsTown || snapshot->IsHideout) return;
+    if (snapshot.IsTown || snapshot.IsHideout) return;
 
     // Skip if not in game
-    if (snapshot->CurrentState != PluginSDK::GameStateTypes::InGameState) return;
+    if (snapshot.State != PluginSDK::GameState::InGame) return;
 
-    DetectKills(snapshot->Entities);
-    DetectChestOpens(snapshot->Entities);
-    DetectPlayerDeath(snapshot->Vitals);
+    DetectKills(snapshot.Entities);
+    DetectChestOpens(snapshot.Entities);
+    DetectPlayerDeath(snapshot.Vitals);
 }
 
 bool KillTracker::ConsumeAreaChanged() {
@@ -49,21 +47,21 @@ void KillTracker::ResetLifetimeCounters() {
     m_LifetimeCounters = {};
 }
 
-void KillTracker::DetectKills(const std::vector<PluginSDK::RadarEntity>& entities) {
+void KillTracker::DetectKills(const std::vector<PluginSDK::Entity>& entities) {
     std::unordered_set<uint32_t> currentMonsterIds;
 
     // Update tracking map with current monsters
     for (const auto& entity : entities) {
-        if (entity.entityType != PluginSDK::EntityTypes::Monster) continue;
-        if (entity.entityState == PluginSDK::EntityStates::MonsterFriendly) continue;
+        if (entity.EntityType != PluginSDK::EntityType::Monster) continue;
+        if (entity.EntityState == PluginSDK::EntityState::MonsterFriendly) continue;
 
         currentMonsterIds.insert(entity.Id);
 
         auto& tracked = m_PrevEntities[entity.Id];
         tracked.Id = entity.Id;
         tracked.Rarity = entity.Rarity;
-        tracked.Type = entity.entityType;
-        tracked.Subtype = entity.entitySubtype;
+        tracked.Type = entity.EntityType;
+        tracked.Subtype = entity.EntitySubtype;
         tracked.Zone = entity.Zone;
     }
 
@@ -72,7 +70,7 @@ void KillTracker::DetectKills(const std::vector<PluginSDK::RadarEntity>& entitie
     // If a monster was previously in InnerCircle or OuterCircle and now disappeared,
     // it was almost certainly killed (not just walked out of range).
     for (auto it = m_PrevEntities.begin(); it != m_PrevEntities.end(); ) {
-        if (it->second.Type != PluginSDK::EntityTypes::Monster) {
+        if (it->second.Type != PluginSDK::EntityType::Monster) {
             ++it;
             continue;
         }
@@ -90,11 +88,11 @@ void KillTracker::DetectKills(const std::vector<PluginSDK::RadarEntity>& entitie
     }
 }
 
-void KillTracker::DetectChestOpens(const std::vector<PluginSDK::RadarEntity>& entities) {
+void KillTracker::DetectChestOpens(const std::vector<PluginSDK::Entity>& entities) {
     std::unordered_set<uint32_t> currentChestIds;
 
     for (const auto& entity : entities) {
-        if (entity.entityType != PluginSDK::EntityTypes::Chest) continue;
+        if (entity.EntityType != PluginSDK::EntityType::Chest) continue;
 
         currentChestIds.insert(entity.Id);
 
@@ -104,8 +102,8 @@ void KillTracker::DetectChestOpens(const std::vector<PluginSDK::RadarEntity>& en
             tracked.Id = entity.Id;
             tracked.WasChestClosed = true;
             tracked.Rarity = entity.Rarity;
-            tracked.Type = entity.entityType;
-            tracked.Subtype = entity.entitySubtype;
+            tracked.Type = entity.EntityType;
+            tracked.Subtype = entity.EntitySubtype;
             tracked.Zone = entity.Zone;
             continue;
         }
@@ -115,13 +113,13 @@ void KillTracker::DetectChestOpens(const std::vector<PluginSDK::RadarEntity>& en
         if (it != m_PrevEntities.end() && it->second.WasChestClosed) {
             it->second.WasChestClosed = false;
             it->second.Zone = entity.Zone;
-            IncrementChest(entity.entitySubtype);
+            IncrementChest(entity.EntitySubtype);
         }
     }
 
     // Also detect chests that disappeared while closed (opened and removed from entity list)
     for (auto it = m_PrevEntities.begin(); it != m_PrevEntities.end(); ) {
-        if (it->second.Type != PluginSDK::EntityTypes::Chest) {
+        if (it->second.Type != PluginSDK::EntityType::Chest) {
             ++it;
             continue;
         }
@@ -140,7 +138,7 @@ void KillTracker::DetectChestOpens(const std::vector<PluginSDK::RadarEntity>& en
     }
 }
 
-void KillTracker::DetectPlayerDeath(const PluginSDK::PlayerVitals& vitals) {
+void KillTracker::DetectPlayerDeath(const PluginSDK::Vitals& vitals) {
     if (!vitals.IsValid) return;
     if (vitals.IsTownOrHideout) return;
 
@@ -174,22 +172,25 @@ void KillTracker::IncrementKill(int rarity) {
     }
 }
 
-void KillTracker::IncrementChest(PluginSDK::EntitySubtypes subtype) {
+void KillTracker::IncrementChest(PluginSDK::EntitySubtype subtype) {
     if (m_PendingReset) {
         m_MapCounters = {};
         m_PendingReset = false;
     }
 
     switch (subtype) {
-        case PluginSDK::EntitySubtypes::ChestWithMagicRarity:
+        case PluginSDK::EntitySubtype::ChestMagic:
             m_MapCounters.MagicChests++;  m_LifetimeCounters.MagicChests++;  break;
-        case PluginSDK::EntitySubtypes::ChestWithRareRarity:
+        case PluginSDK::EntitySubtype::ChestRare:
             m_MapCounters.RareChests++;   m_LifetimeCounters.RareChests++;   break;
-        case PluginSDK::EntitySubtypes::ExpeditionChest:
+        case PluginSDK::EntitySubtype::ExpeditionChest:
             m_MapCounters.ExpeditionChests++; m_LifetimeCounters.ExpeditionChests++; break;
-        case PluginSDK::EntitySubtypes::BreachChest:
+        case PluginSDK::EntitySubtype::BreachChest:
             m_MapCounters.BreachChests++; m_LifetimeCounters.BreachChests++; break;
-        case PluginSDK::EntitySubtypes::Strongbox:
+        case PluginSDK::EntitySubtype::Strongbox:
+        case PluginSDK::EntitySubtype::JewellerStrongbox:
+        case PluginSDK::EntitySubtype::ResearcherStrongbox:
+        case PluginSDK::EntitySubtype::LargeStrongbox:
             m_MapCounters.Strongboxes++;  m_LifetimeCounters.Strongboxes++;  break;
         default:
             break;

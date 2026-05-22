@@ -1,8 +1,10 @@
 #pragma once
 
-#include "sdk/PluginHelpers.h"
+#include "sdk/PluginSDK.h"
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+#include <string>
 
 // Per-map / lifetime statistics
 struct MapCounters {
@@ -31,15 +33,15 @@ struct MapCounters {
 struct TrackedEntity {
     uint32_t Id = 0;
     int Rarity = 0;
-    PluginSDK::EntityTypes Type = PluginSDK::EntityTypes::Unidentified;
-    PluginSDK::EntitySubtypes Subtype = PluginSDK::EntitySubtypes::_Unidentified;
-    PluginSDK::NearbyZone Zone = PluginSDK::NearbyZone::None;
+    PluginSDK::EntityType    Type    = PluginSDK::EntityType::Unidentified;
+    PluginSDK::EntitySubtype Subtype = PluginSDK::EntitySubtype::Unidentified;
+    PluginSDK::NearbyZone    Zone    = PluginSDK::NearbyZone::None;
     bool WasChestClosed = false; // Only used for chests
 };
 
 class KillTracker {
 public:
-    void Update(const std::shared_ptr<const PluginSDK::PluginGameSnapshot>& snapshot);
+    void Update(const PluginSDK::Snapshot& snapshot);
 
     const MapCounters& GetMapCounters() const { return m_MapCounters; }
     const MapCounters& GetLifetimeCounters() const { return m_LifetimeCounters; }
@@ -76,9 +78,9 @@ private:
     std::unordered_map<uint32_t, TrackedEntity> m_PrevEntities;
     bool m_PlayerWasAlive = true;
 
-    void DetectKills(const std::vector<PluginSDK::RadarEntity>& entities);
-    void DetectChestOpens(const std::vector<PluginSDK::RadarEntity>& entities);
-    void DetectPlayerDeath(const PluginSDK::PlayerVitals& vitals);
+    void DetectKills(const std::vector<PluginSDK::Entity>& entities);
+    void DetectChestOpens(const std::vector<PluginSDK::Entity>& entities);
+    void DetectPlayerDeath(const PluginSDK::Vitals& vitals);
     void IncrementKill(int rarity);
-    void IncrementChest(PluginSDK::EntitySubtypes subtype);
+    void IncrementChest(PluginSDK::EntitySubtype subtype);
 };

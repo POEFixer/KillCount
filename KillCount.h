@@ -1,28 +1,25 @@
 #pragma once
 
-#include "sdk/PluginHelpers.h"
+#include "sdk/PluginSDK.h"
 #include "KillTracker.h"
 #include "IconAtlas.h"
 #include "OverlayRenderer.h"
 #include "Database.h"
 #include "DisplaySettings.h"
 
-class KillCountPlugin : public IPlugin {
+class KillCountPlugin : public PluginSDK::Plugin {
 public:
-    void SetPluginDirectory(const char* dir) override;
-    void SetContext(PluginContext* ctx) override;
-    void OnEnable(bool isGameOpened) override;
+    void OnEnable(bool isGameAttached) override;
     void OnDisable() override;
     void DrawSettings() override;
     void DrawUI() override;
     void SaveSettings() override;
-    const char* GetName() override { return "Kill Counter"; }
-    bool WantsOverlay() override { return m_Settings.WantsOverlayMode && m_Settings.ShowOverlay; }
+    const char* GetName() const override { return "Kill Counter"; }
+    bool WantsOverlay() const override {
+        return m_Settings.WantsOverlayMode && m_Settings.ShowOverlay;
+    }
 
 private:
-    PluginContext* m_Context = nullptr;
-    std::string m_Directory;
-
     DisplaySettings m_Settings;
     KillTracker m_Tracker;
     IconAtlas m_IconAtlas;

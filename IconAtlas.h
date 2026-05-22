@@ -1,6 +1,6 @@
 #pragma once
 
-#include "imgui/imgui.h"
+#include <imgui.h>
 #include <d3d11.h>
 #include <string>
 #include <unordered_map>

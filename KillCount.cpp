@@ -1,29 +1,17 @@
 #include "KillCount.h"
+#include <imgui.h>
 #include <fstream>
 #include <filesystem>
 #include <string>
 
-using namespace PluginSDK;
-
 // ============================================================================
-// IPlugin implementation
+// PluginSDK::Plugin implementation (v6 SDK)
 // ============================================================================
 
-void KillCountPlugin::SetPluginDirectory(const char* dir) {
-    m_Directory = dir;
-}
-
-void KillCountPlugin::SetContext(PluginContext* ctx) {
-    m_Context = ctx;
-    if (m_Context && m_Context->ImGuiContext) {
-        ImGui::SetCurrentContext(static_cast<ImGuiContext*>(m_Context->ImGuiContext));
-    }
-}
-
-void KillCountPlugin::OnEnable(bool /*isGameOpened*/) {
+void KillCountPlugin::OnEnable(bool /*isGameAttached*/) {
     LoadSettings();
 
-    if (m_Database.Open(m_Directory)) {
+    if (m_Database.Open(Directory())) {
         auto lifetime = m_Database.LoadLifetimeStats();
         m_Tracker.SetLifetimeCounters(lifetime);
     }
@@ -31,9 +19,10 @@ void KillCountPlugin::OnEnable(bool /*isGameOpened*/) {
     // Initialize renderer position from saved settings
     m_Renderer.SetPosition(m_Settings.PosX, m_Settings.PosY);
 
-    if (m_Context) {
-        m_Context->Log("Info", "KillCount plugin enabled");
-    }
+    if (ctx()->ImGuiContext)
+        ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx()->ImGuiContext));
+
+    ctx()->Log.Info("KillCount plugin enabled");
 }
 
 void KillCountPlugin::OnDisable() {
@@ -43,16 +32,14 @@ void KillCountPlugin::OnDisable() {
     m_IconAtlas.Release();
     m_Initialized = false;
 
-    if (m_Context) {
-        m_Context->Log("Info", "KillCount plugin disabled");
-    }
+    ctx()->Log.Info("KillCount plugin disabled");
 }
 
 void KillCountPlugin::InitializeOnce() {
     if (m_Initialized) return;
-    if (!m_Context || !m_Context->D3DDevice) return;
+    if (!ctx()->D3DDevice) return;
 
-    m_IconAtlas.Initialize(m_Context->D3DDevice);
+    m_IconAtlas.Initialize(ctx()->D3DDevice);
     m_Renderer.Initialize(&m_IconAtlas);
     m_Initialized = true;
 }
@@ -66,16 +53,15 @@ void KillCountPlugin::FlushSession() {
 }
 
 void KillCountPlugin::DrawUI() {
-    if (!m_Context) return;
-    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(m_Context->ImGuiContext));
+    if (ctx()->ImGuiContext)
+        ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx()->ImGuiContext));
 
     InitializeOnce();
 
-    auto snapshot = m_Context->GetSnapshot();
-    if (!snapshot || !snapshot->IsAttached) return;
+    PluginSDK::Snapshot snapshot = ctx()->Game.GetSnapshot();
+    if (!snapshot.IsAttached) return;
 
-    bool inGame = (snapshot->CurrentState == GameStateTypes::InGameState);
-    if (!inGame) return;
+    if (snapshot.State != PluginSDK::GameState::InGame) return;
 
     // Update tracker
     m_Tracker.Update(snapshot);
@@ -93,7 +79,7 @@ void KillCountPlugin::DrawUI() {
     }
 
     // Render overlay
-    bool menuVisible = m_Context->IsMenuVisible ? m_Context->IsMenuVisible() : true;
+    bool menuVisible = ctx()->Game.IsMenuVisible();
     m_Renderer.Render(
         m_Tracker.GetMapCounters(),
         m_Tracker.GetLifetimeCounters(),
@@ -180,11 +166,12 @@ void KillCountPlugin::DrawSettings() {
 
 void KillCountPlugin::SaveSettings() {
     namespace fs = std::filesystem;
-    fs::path configDir = fs::path(m_Directory) / "config";
-    if (!fs::exists(configDir)) {
-        fs::create_directories(configDir);
-    }
+    fs::path configDir = fs::path(Directory()) / "config";
+    std::error_code ec;
+    fs::create_directories(configDir, ec);
 
+    // Use filesystem::path to construct the ofstream — ofstream(std::string)
+    // uses the ANSI codepage on MSVC and breaks Unicode user directory names.
     std::ofstream file(configDir / "settings.txt");
     if (!file.is_open()) return;
 
@@ -215,7 +202,7 @@ void KillCountPlugin::SaveSettings() {
 
 void KillCountPlugin::LoadSettings() {
     namespace fs = std::filesystem;
-    fs::path settingsPath = fs::path(m_Directory) / "config" / "settings.txt";
+    fs::path settingsPath = fs::path(Directory()) / "config" / "settings.txt";
     if (!fs::exists(settingsPath)) return;
 
     std::ifstream file(settingsPath);
@@ -228,7 +215,7 @@ void KillCountPlugin::LoadSettings() {
 
         if (key == "ShowOverlay")          m_Settings.ShowOverlay = (val == "1");
         else if (key == "WantsOverlayMode") m_Settings.WantsOverlayMode = (val == "1");
-        else if (key == "WindowAlpha")     m_Settings.WindowAlpha = std::stof(val);
+        else if (key == "WindowAlpha")     { try { m_Settings.WindowAlpha = std::stof(val); } catch (...) {} }
         else if (key == "ShowMapCounters") m_Settings.ShowMapCounters = (val == "1");
         else if (key == "ShowTotalCounters") m_Settings.ShowTotalCounters = (val == "1");
         else if (key == "ShowMonsters")    m_Settings.ShowMonsters = (val == "1");
@@ -244,19 +231,19 @@ void KillCountPlugin::LoadSettings() {
         else if (key == "ShowExpeditionChest") m_Settings.ShowExpeditionChest = (val == "1");
         else if (key == "ShowBreachChest") m_Settings.ShowBreachChest = (val == "1");
         else if (key == "ShowStrongbox")   m_Settings.ShowStrongbox = (val == "1");
-        else if (key == "PosX")            m_Settings.PosX = std::stof(val);
-        else if (key == "PosY")            m_Settings.PosY = std::stof(val);
+        else if (key == "PosX")            { try { m_Settings.PosX = std::stof(val); } catch (...) {} }
+        else if (key == "PosY")            { try { m_Settings.PosY = std::stof(val); } catch (...) {} }
     }
 }
 
 // ============================================================================
-// Factory exports
+// v6 factory exports
 // ============================================================================
 
-extern "C" PLUGIN_API IPlugin* CreatePlugin() {
+extern "C" PLUGIN_API PluginSDK::Plugin* CreatePlugin() {
     return new KillCountPlugin();
 }
 
-extern "C" PLUGIN_API void DestroyPlugin(IPlugin* plugin) {
+extern "C" PLUGIN_API void DestroyPlugin(PluginSDK::Plugin* plugin) {
     delete plugin;
 }

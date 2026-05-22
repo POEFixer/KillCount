@@ -3,7 +3,7 @@
 // stb_image implementation — define once in this TU
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
-#include "imgui/stb_image.h"
+#include <stb_image.h>
 
 #include <nlohmann/json.hpp>
 #include <fstream>
