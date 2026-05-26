@@ -11,7 +11,7 @@
 void KillCountPlugin::OnEnable(bool /*isGameAttached*/) {
     LoadSettings();
 
-    if (m_Database.Open(Directory())) {
+    if (m_Database.Open(DirectoryPath())) {
         auto lifetime = m_Database.LoadLifetimeStats();
         m_Tracker.SetLifetimeCounters(lifetime);
     }
@@ -166,7 +166,7 @@ void KillCountPlugin::DrawSettings() {
 
 void KillCountPlugin::SaveSettings() {
     namespace fs = std::filesystem;
-    fs::path configDir = fs::path(Directory()) / "config";
+    fs::path configDir = DirectoryPath() / "config";
     std::error_code ec;
     fs::create_directories(configDir, ec);
 
@@ -202,7 +202,7 @@ void KillCountPlugin::SaveSettings() {
 
 void KillCountPlugin::LoadSettings() {
     namespace fs = std::filesystem;
-    fs::path settingsPath = fs::path(Directory()) / "config" / "settings.txt";
+    fs::path settingsPath = DirectoryPath() / "config" / "settings.txt";
     if (!fs::exists(settingsPath)) return;
 
     std::ifstream file(settingsPath);

@@ -1,16 +1,29 @@
 #include "Database.h"
 #include "sqlite3.h"
 #include <filesystem>
+#include <Windows.h>
 
-bool KillDatabase::Open(const std::string& pluginDir) {
+bool KillDatabase::Open(const std::filesystem::path& pluginDir) {
     namespace fs = std::filesystem;
-    fs::path dataDir = fs::path(pluginDir) / "data";
+    fs::path dataDir = pluginDir / "data";
     if (!fs::exists(dataDir)) {
         fs::create_directories(dataDir);
     }
 
-    std::string dbPath = (dataDir / "killcount.db").string();
-    int rc = sqlite3_open(dbPath.c_str(), &m_DB);
+    fs::path dbPath = dataDir / "killcount.db";
+    // sqlite3_open expects a UTF-8 filename on Windows. Build it from the
+    // wide form rather than path::string() (which uses the default C locale
+    // and throws on non-ASCII).
+    std::wstring wide = dbPath.wstring();
+    int needed = ::WideCharToMultiByte(
+        CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()),
+        nullptr, 0, nullptr, nullptr);
+    std::string dbPathUtf8(static_cast<size_t>(needed), '\0');
+    ::WideCharToMultiByte(
+        CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()),
+        dbPathUtf8.data(), needed, nullptr, nullptr);
+
+    int rc = sqlite3_open(dbPathUtf8.c_str(), &m_DB);
     if (rc != SQLITE_OK) {
         m_DB = nullptr;
         return false;
