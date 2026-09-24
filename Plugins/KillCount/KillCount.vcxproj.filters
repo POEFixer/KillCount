@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="KillCount.cpp" />
+    <ClCompile Include="KillTracker.cpp" />
+    <ClCompile Include="OverlayRenderer.cpp" />
+    <ClCompile Include="Database.cpp" />
+    <ClCompile Include="IconAtlas.cpp" />
+    <ClCompile Include="lib\sqlite3.c">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\POEFixer\imgui\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\POEFixer\imgui\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\POEFixer\imgui\imgui_tables.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\POEFixer\imgui\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="KillCount.h" />
+    <ClInclude Include="KillTracker.h" />
+    <ClInclude Include="IconAtlas.h" />
+    <ClInclude Include="OverlayRenderer.h" />
+    <ClInclude Include="Database.h" />
+    <ClInclude Include="DisplaySettings.h" />
+    <ClInclude Include="..\..\POEFixer\plugin_sdk\PluginAbi.h">
+      <Filter>api</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\POEFixer\plugin_sdk\PluginSDK.h">
+      <Filter>api</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{d2b3c4d5-e6f7-a8b9-c0d1-e2f3a4b5c6d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="api">
+      <UniqueIdentifier>{e3c4d5e6-f7a8-b9c0-d1e2-f3a4b5c6d7e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib">
+      <UniqueIdentifier>{f4d5e6f7-a8b9-c0d1-e2f3-a4b5c6d7e8f9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sdk/PluginSDK.h"
+#include "../../POEFixer/plugin_sdk/PluginSDK.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

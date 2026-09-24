@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sdk/PluginSDK.h"
+#include "../../POEFixer/plugin_sdk/PluginSDK.h"
 #include "KillTracker.h"
 #include "IconAtlas.h"
 #include "OverlayRenderer.h"
