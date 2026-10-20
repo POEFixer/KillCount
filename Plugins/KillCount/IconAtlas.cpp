@@ -137,7 +137,7 @@ void IconAtlas::SetupFallbackIcons() {
         { "Rare Chests",                1,  70, 30.0f },
         { "Generic Expedition Chests",  4,  41, 25.0f },
         { "Breach Chest",               1,   2, 20.0f },
-        { "Strongbox",                 11,  64, 30.0f },
+        { "Strongbox",                  1,  58, 30.0f },
         { "Self",                        0,   0, 15.0f },
         { "Death",                       0,   0, 15.0f },
     };
