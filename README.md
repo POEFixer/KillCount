@@ -1,3 +1,5 @@
+> **Retired (2026-10-22).** This plugin is no longer maintained or distributed by POE2Fixer. It does not load in POE2Fixer 364 and newer. Install current plugins from POE2Fixer -> Plugins -> Plugin Manager.
+
 # KillCount — Kill/Chest/Death Tracking Plugin
 
 A comprehensive tracking overlay for POE2Fixer that counts monster kills, chest opens, and player deaths with per-map and lifetime statistics. All data is persisted in a local SQLite3 database.
